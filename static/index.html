@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Loader</title>
+</head>
+<body>
+    <div class="content">
+        <textarea id="input" cols="30" rows="10"></textarea>
+        <button id="generate">Generate</button>
+    </div>
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new window.Go();
+        
+        WebAssembly.instantiateStreaming(
+            fetch("engine.wasm"),
+            go.importObject
+        ).then(
+            (obj) => {
+                go.run(obj.instance);
+            }
+        );
+
+        document.getElementById("generate").addEventListener("click", () => {
+            const codes = document.getElementById("input").value.split("\n");
+            console.log({codes});
+            
+            // Sample Uint8Array
+            const uint8Array = generatePdf(codes);
+
+            // Convert Uint8Array to Blob
+            const blob = new Blob([uint8Array], { type: 'application/octet-stream' });
+
+            // Create a URL for the Blob
+            const url = URL.createObjectURL(blob);
+
+            // Create an anchor element and trigger the download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'test.pdf'; // Specify the desired file name
+            document.body.appendChild(a);
+            a.click(); // Trigger the download
+            document.body.removeChild(a); // Clean up
+
+            // Revoke the Blob URL (optional, but good practice)
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
