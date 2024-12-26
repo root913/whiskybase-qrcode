@@ -48,6 +48,9 @@
         button:hover {
             background-color: #983528;
         }
+        button:disabled {
+            background-color: #a5665f;
+        }
         .code-item {
             padding: 10px;
             margin: 5px 0;
@@ -110,7 +113,7 @@
         function validateCodes() {
             const textarea = document.querySelector('textarea');
             const codesList = document.querySelector('.codes-list');
-            const generateButton = document.querySelector('#generateButton');
+            const generateButton = document.querySelector('#generate');
             codesList.innerHTML = '';
             
             const codes = textarea.value.split('\n').filter(code => code.trim());
