@@ -4,11 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WASM Loader</title>
+    <title>WhiskyBase Code PDF Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #446b7c;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        button {
+            background-color: #ae3e32;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #983528;
+        }
+        .code-item {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .code-item.valid { border-left: 4px solid #446b7c; }
+        .code-item.invalid { border-left: 4px solid #ae3e32; }
+        .error-message { color: #ae3e32; }
+    </style>
 </head>
 <body>
-    <div class="content">
-        <textarea id="input" cols="30" rows="10"></textarea>
-        <button id="generate">Generate</button>
+    <div class="container">
+        <img src="logo.png" alt="WhiskyBase" class="logo">
+        <h1>WhiskyBase Code PDF Generator</h1>
+        <textarea 
+            id="input"
+            placeholder="Enter your WhiskyBase codes here, one per line... Example: WB805" 
+            oninput="validateCodes()"></textarea>
+        <button id="generate" disabled>Generate PDF</button>
+        <div class="codes-list"></div>
     </div>
     <script src="wasm_exec.js"></script>
     <script>
@@ -25,7 +85,6 @@
 
         document.getElementById("generate").addEventListener("click", () => {
             const codes = document.getElementById("input").value.split("\n");
-            console.log({codes});
             
             // Sample Uint8Array
             const uint8Array = generatePdf(codes);
@@ -39,7 +98,7 @@
             // Create an anchor element and trigger the download
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'test.pdf'; // Specify the desired file name
+            a.download = 'wb-codes.pdf'; // Specify the desired file name
             document.body.appendChild(a);
             a.click(); // Trigger the download
             document.body.removeChild(a); // Clean up
@@ -47,6 +106,31 @@
             // Revoke the Blob URL (optional, but good practice)
             URL.revokeObjectURL(url);
         });
+
+        function validateCodes() {
+            const textarea = document.querySelector('textarea');
+            const codesList = document.querySelector('.codes-list');
+            const generateButton = document.querySelector('#generateButton');
+            codesList.innerHTML = '';
+            
+            const codes = textarea.value.split('\n').filter(code => code.trim());
+            let hasInvalidCodes = false;
+            
+            codes.forEach(code => {
+                const isValid = /^WB\d+$/.test(code.trim());
+                if (!isValid) hasInvalidCodes = true;
+                
+                const codeItem = document.createElement('div');
+                codeItem.className = `code-item ${isValid ? 'valid' : 'invalid'}`;
+                codeItem.innerHTML = `
+                    <span>${code}</span>
+                    ${isValid ? '' : '<span class="error-message">Invalid format</span>'}
+                `;
+                codesList.appendChild(codeItem);
+            });
+
+            generateButton.disabled = hasInvalidCodes || codes.length === 0;
+        }
     </script>
 </body>
 </html>
