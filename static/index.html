@@ -1,139 +1,665 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WASM Loader</title>
-    <title>WhiskyBase Code PDF Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .logo {
-            max-width: 200px;
-            margin-bottom: 20px;
-        }
-        h1 {
-            color: #446b7c;
-        }
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            resize: vertical;
-            font-family: monospace;
-        }
-        button {
-            background-color: #ae3e32;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #983528;
-        }
-        button:disabled {
-            background-color: #a5665f;
-        }
-        .code-item {
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .code-item.valid { border-left: 4px solid #446b7c; }
-        .code-item.invalid { border-left: 4px solid #ae3e32; }
-        .error-message { color: #ae3e32; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhiskyBase Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <img src="logo.png" alt="WhiskyBase" class="logo">
-        <h1>WhiskyBase Code PDF Generator</h1>
-        <textarea 
-            id="input"
-            placeholder="Enter your WhiskyBase codes here, one per line... Example: WB805" 
-            oninput="validateCodes()"></textarea>
-        <button id="generate" disabled>Generate PDF</button>
-        <div class="codes-list"></div>
+
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">W</div>
+      <div class="brand-name">WhiskyBase</div>
+      <div class="brand-sub">Tools</div>
     </div>
-    <script src="wasm_exec.js"></script>
-    <script>
-        const go = new window.Go();
-        
-        WebAssembly.instantiateStreaming(
-            fetch("engine.wasm"),
-            go.importObject
-        ).then(
-            (obj) => {
-                go.run(obj.instance);
-            }
-        );
 
-        document.getElementById("generate").addEventListener("click", () => {
-            const codes = document.getElementById("input").value.split("\n");
-            
-            // Sample Uint8Array
-            const uint8Array = generatePdf(codes);
+    <nav class="nav">
+      <div class="nav-section-label">Generate</div>
 
-            // Convert Uint8Array to Blob
-            const blob = new Blob([uint8Array], { type: 'application/octet-stream' });
+      <div class="nav-item active" onclick="showPanel('qr', this)">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <path d="M14 14h2v2h-2zM18 14h3v2h-3zM14 18h2v3h-2zM18 18h3v3h-3z"/>
+        </svg>
+        QR Codes
+      </div>
 
-            // Create a URL for the Blob
-            const url = URL.createObjectURL(blob);
+      <div class="nav-item" onclick="showPanel('pdf', this)">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>
+          <line x1="8" y1="9" x2="10" y2="9"/>
+        </svg>
+        PDF Sheet
+      </div>
 
-            // Create an anchor element and trigger the download
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'wb-codes.pdf'; // Specify the desired file name
-            document.body.appendChild(a);
-            a.click(); // Trigger the download
-            document.body.removeChild(a); // Clean up
+      <div class="nav-section-label" style="margin-top:0.8rem;">Config</div>
 
-            // Revoke the Blob URL (optional, but good practice)
-            URL.revokeObjectURL(url);
-        });
+      <div class="nav-item" onclick="showPanel('settings', this)">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Settings
+      </div>
+    </nav>
 
-        function validateCodes() {
-            const textarea = document.querySelector('textarea');
-            const codesList = document.querySelector('.codes-list');
-            const generateButton = document.querySelector('#generate');
-            codesList.innerHTML = '';
-            
-            const codes = textarea.value.split('\n').filter(code => code.trim());
-            let hasInvalidCodes = false;
-            
-            codes.forEach(code => {
-                const isValid = /^WB\d+$/.test(code.trim());
-                if (!isValid) hasInvalidCodes = true;
-                
-                const codeItem = document.createElement('div');
-                codeItem.className = `code-item ${isValid ? 'valid' : 'invalid'}`;
-                codeItem.innerHTML = `
-                    <span>${code}</span>
-                    ${isValid ? '' : '<span class="error-message">Invalid format</span>'}
-                `;
-                codesList.appendChild(codeItem);
-            });
+    <div class="sidebar-footer">
+      whiskybase.com/whiskies/whisky/{id}
+    </div>
+  </aside>
 
-            generateButton.disabled = hasInvalidCodes || codes.length === 0;
-        }
-    </script>
+  <!-- ── Content ── -->
+  <div class="content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="page-title" id="page-title">QR Code Generator</div>
+      <div class="topbar-actions">
+        <span id="wasm-status" class="wasm-badge wasm-loading">
+          <span class="wasm-dot"></span>
+          <span id="wasm-status-text">Loading engine…</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- ══ QR Panel ══ -->
+    <div class="page-body panel active" id="panel-qr">
+
+      <div class="section-head">
+        <h2>QR Code Generator</h2>
+        <p>Enter WhiskyBase IDs to generate QR codes linking to each whisky page</p>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.2rem;">
+        <div class="card-body">
+          <div class="row" style="margin-bottom: 1rem;">
+            <div class="field" style="flex:2">
+              <label>WhiskyBase code or URL</label>
+              <input type="text" id="qr-id-input" placeholder="WB288730 or https://…/288730" onkeydown="handleChipInput(event,'qr')">
+            </div>
+            <div>
+              <button class="btn btn-outline" onclick="addChip('qr')">Add</button>
+            </div>
+          </div>
+          <div>
+            <label>Bulk paste <span style="text-transform:none;letter-spacing:0;font-style:italic">(comma or newline separated)</span></label>
+            <textarea id="qr-bulk" placeholder="WB288730&#10;WB166254, WB282283&#10;https://www.whiskybase.com/whiskies/whisky/267348"></textarea>
+            <p class="hint">Accepts: <strong>WB288730</strong> · <strong>288730</strong> · <strong>https://www.whiskybase.com/whiskies/whisky/288730</strong></p>
+          </div>
+          <div class="id-chips" id="qr-chips" onclick="document.getElementById('qr-id-input').focus()">
+            <span style="font-size:0.65rem;color:var(--text-muted);align-self:center;letter-spacing:0.06em;">Added IDs will appear here…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.2rem;">
+        <div class="card-body">
+          <div class="grid-3" style="gap: 1.4rem;">
+            <div class="field">
+              <label>Output format</label>
+              <div class="segment">
+                <input type="radio" name="qr-fmt" id="fmt-svg" value="svg" checked>
+                <label for="fmt-svg">SVG</label>
+                <input type="radio" name="qr-fmt" id="fmt-png" value="png">
+                <label for="fmt-png">PNG</label>
+                <input type="radio" name="qr-fmt" id="fmt-both" value="both">
+                <label for="fmt-both">Both</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Size</label>
+              <select id="qr-size">
+                <option value="256">256 px</option>
+                <option value="512" selected>512 px</option>
+                <option value="1024">1024 px</option>
+                <option value="2048">2048 px</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Error correction</label>
+              <select id="qr-ec">
+                <option value="H" selected>H — High (30%)</option>
+                <option value="Q">Q — Medium (25%)</option>
+                <option value="M">M — Low (15%)</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="divider" style="margin: 1.2rem 0;">
+
+          <div class="grid-3" style="gap: 1.4rem;">
+            <div class="field">
+              <label>Logo overlay</label>
+              <div class="logo-input-wrap" onclick="document.getElementById('qr-logo-file').click()">
+                <img id="qr-logo-preview" class="logo-preview" style="display:none;">
+                <span id="qr-logo-placeholder" class="logo-placeholder">Click to select…</span>
+                <span id="qr-logo-name" class="logo-filename"></span>
+                <span onclick="event.stopPropagation();clearLogo()" id="qr-logo-clear" class="logo-clear" style="display:none;">×</span>
+              </div>
+              <input type="file" id="qr-logo-file" accept="image/png,image/jpeg,image/svg+xml" style="display:none;" onchange="handleLogoFile(this)">
+              <p class="hint">PNG or JPG — forces H error correction</p>
+            </div>
+            <div class="field">
+              <label>Logo size</label>
+              <select id="qr-logo-size">
+                <option value="15">15% of QR</option>
+                <option value="25" selected>25% of QR</option>
+                <option value="30">30% of QR</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Corner radius</label>
+              <select id="qr-logo-radius">
+                <option value="0">None</option>
+                <option value="6" selected>Small (6px)</option>
+                <option value="12">Medium (12px)</option>
+                <option value="999">Round</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer" style="flex-wrap:wrap;gap:0.8rem;">
+          <div style="display:flex;gap:1.5rem;flex:1;flex-wrap:wrap;">
+            <label class="check-row" style="margin:0">
+              <input type="checkbox" id="qr-quiet-zone" checked>
+              <span>Quiet zone (4 modules)</span>
+            </label>
+            <label class="check-row" style="margin:0">
+              <input type="checkbox" id="qr-logo-pad">
+              <span>White logo background pad</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pattern picker -->
+      <div class="card" style="margin-bottom:1.2rem;">
+        <div class="card-body">
+          <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Module pattern</div>
+          <div class="grid-2" style="gap:1.4rem;">
+            <div class="field">
+              <label>Module shape</label>
+              <div class="pattern-grid" id="pattern-module">
+                <div class="pattern-option active" data-value="square" onclick="selectPattern('module',this)">
+                  <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="0"/></svg>
+                  <span>Square</span>
+                </div>
+                <div class="pattern-option" data-value="rounded" onclick="selectPattern('module',this)">
+                  <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="7"/></svg>
+                  <span>Rounded</span>
+                </div>
+                <div class="pattern-option" data-value="dot" onclick="selectPattern('module',this)">
+                  <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14"/></svg>
+                  <span>Dot</span>
+                </div>
+                <div class="pattern-option" data-value="diamond" onclick="selectPattern('module',this)">
+                  <svg viewBox="0 0 40 40"><polygon points="20,4 36,20 20,36 4,20"/></svg>
+                  <span>Diamond</span>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Finder pattern</label>
+              <div class="pattern-grid" id="pattern-finder">
+                <div class="pattern-option active" data-value="square" onclick="selectPattern('finder',this)">
+                  <svg viewBox="0 0 40 40">
+                    <rect x="4" y="4" width="32" height="32" rx="0" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <rect x="12" y="12" width="16" height="16" rx="0"/>
+                  </svg>
+                  <span>Square</span>
+                </div>
+                <div class="pattern-option" data-value="rounded" onclick="selectPattern('finder',this)">
+                  <svg viewBox="0 0 40 40">
+                    <rect x="4" y="4" width="32" height="32" rx="8" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <rect x="12" y="12" width="16" height="16" rx="4"/>
+                  </svg>
+                  <span>Rounded</span>
+                </div>
+                <div class="pattern-option" data-value="circle" onclick="selectPattern('finder',this)">
+                  <svg viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <circle cx="20" cy="20" r="8"/>
+                  </svg>
+                  <span>Circle</span>
+                </div>
+                <div class="pattern-option" data-value="diamond" onclick="selectPattern('finder',this)">
+                  <svg viewBox="0 0 40 40">
+                    <polygon points="20,2 38,20 20,38 2,20" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <polygon points="20,12 28,20 20,28 12,20"/>
+                  </svg>
+                  <span>Diamond</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="divider" style="margin:1.2rem 0 1rem;">
+
+          <div class="grid-2" style="gap:1.4rem;">
+            <div class="field">
+              <label>Foreground color</label>
+              <div style="display:flex;gap:0.6rem;align-items:center;">
+                <input type="color" id="qr-color-fg" value="#000000" style="width:40px;height:36px;padding:2px;border-radius:3px;cursor:pointer;flex-shrink:0;">
+                <input type="text" id="qr-color-fg-hex" value="#000000" style="flex:1;" oninput="syncColor('fg',this.value)" placeholder="#000000">
+              </div>
+            </div>
+            <div class="field">
+              <label>Background color</label>
+              <div style="display:flex;gap:0.6rem;align-items:center;">
+                <input type="color" id="qr-color-bg" value="#ffffff" style="width:40px;height:36px;padding:2px;border-radius:3px;cursor:pointer;flex-shrink:0;">
+                <input type="text" id="qr-color-bg-hex" value="#ffffff" style="flex:1;" oninput="syncColor('bg',this.value)" placeholder="#ffffff">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+        <span style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;">
+          Results <span id="qr-result-count" style="color:var(--amber);margin-left:0.4rem;"></span>
+        </span>
+        <div style="display:flex;gap:0.6rem;align-items:center;">
+          <button class="btn btn-ghost btn-sm" id="btn-download-all" onclick="downloadAll()" style="display:none;">Download all</button>
+          <button class="btn btn-outline btn-sm" onclick="clearAll()">Clear</button>
+          <button class="btn btn-primary btn-sm" id="btn-generate" onclick="runGenerate()" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Generate
+          </button>
+        </div>
+      </div>
+
+      <div id="qr-results" class="results-row">
+        <div class="empty" style="grid-column:1/-1;border:1px dashed var(--border);border-radius:4px;padding:3rem 1rem;">
+          <span class="empty-icon">◈</span>
+          <p>Add WhiskyBase codes and press Generate</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ PDF Panel ══ -->
+    <div class="page-body panel" id="panel-pdf">
+
+      <div class="section-head">
+        <h2>PDF Sheet</h2>
+        <p>Generate a printable sheet of QR codes with WhiskyBase links</p>
+      </div>
+
+      <div class="card" style="margin-bottom: 1.2rem;">
+        <div class="card-body">
+          <div class="row" style="margin-bottom:1rem;">
+            <div class="field" style="flex:2">
+              <label>WhiskyBase code or URL</label>
+              <input type="text" id="pdf-id-input" placeholder="WB288730 or https://…/288730" onkeydown="handleChipInput(event,'pdf')">
+            </div>
+            <div>
+              <button class="btn btn-outline" onclick="addChip('pdf')">Add</button>
+            </div>
+          </div>
+          <div>
+            <label>Bulk paste</label>
+            <textarea id="pdf-bulk" placeholder="WB288730&#10;WB166254, WB282283&#10;https://www.whiskybase.com/whiskies/whisky/267348"></textarea>
+            <p class="hint">Accepts: <strong>WB288730</strong> · <strong>288730</strong> · <strong>https://www.whiskybase.com/whiskies/whisky/288730</strong></p>
+          </div>
+          <div class="id-chips" id="pdf-chips" onclick="document.getElementById('pdf-id-input').focus()">
+            <span style="font-size:0.65rem;color:var(--text-muted);align-self:center;letter-spacing:0.06em;">Added IDs will appear here…</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Page layout</div>
+            <div class="grid-2" style="gap:1rem;">
+              <div class="field">
+                <label>Paper</label>
+                <select id="pdf-paper" onchange="updatePaperPreview()">
+                  <option value="a4" selected>A4</option>
+                  <option value="letter">US Letter</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Orientation</label>
+                <select id="pdf-orient" onchange="updatePaperPreview()">
+                  <option value="portrait" selected>Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Columns</label>
+                <select id="pdf-cols" onchange="updatePaperPreview()">
+                  <option value="1">1 column</option>
+                  <option value="2" selected>2 columns</option>
+                  <option value="3">3 columns</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Margin</label>
+                <select>
+                  <option>Narrow (10mm)</option>
+                  <option selected>Normal (15mm)</option>
+                  <option>Wide (20mm)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Layout preview</div>
+            <div class="pdf-layout-preview" id="pdf-preview-box">
+              <div class="paper-mock" id="paper-mock" style="width:90px;height:127px;">
+                <div class="paper-header"></div>
+                <div class="paper-row" id="paper-mock-row">
+                  <div class="paper-cell">
+                    <div class="paper-qr" style="width:18px;height:18px;"></div>
+                    <div class="paper-lines">
+                      <div class="paper-line"></div>
+                      <div class="paper-line"></div>
+                      <div class="paper-line"></div>
+                    </div>
+                  </div>
+                  <div class="paper-cell">
+                    <div class="paper-qr" style="width:18px;height:18px;"></div>
+                    <div class="paper-lines">
+                      <div class="paper-line"></div>
+                      <div class="paper-line"></div>
+                      <div class="paper-line"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card" style="margin-bottom:1.2rem;">
+        <div class="card-body">
+          <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">QR & content options</div>
+          <div class="grid-4" style="gap:1rem;">
+            <div class="field">
+              <label>QR size</label>
+              <select>
+                <option>Small (25mm)</option>
+                <option selected>Medium (35mm)</option>
+                <option>Large (50mm)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Error correction</label>
+              <select>
+                <option value="H" selected>H — High</option>
+                <option value="Q">Q — Medium</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Show ID label</label>
+              <select>
+                <option>Yes</option>
+                <option>No</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Show URL</label>
+              <select>
+                <option>Full URL</option>
+                <option selected>Short path</option>
+                <option>None</option>
+              </select>
+            </div>
+          </div>
+          <hr class="divider" style="margin:1.2rem 0 1rem;">
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+            <label class="check-row" style="margin:0">
+              <input type="checkbox" checked>
+              <span>Include page header</span>
+            </label>
+            <label class="check-row" style="margin:0">
+              <input type="checkbox">
+              <span>Include page numbers</span>
+            </label>
+            <label class="check-row" style="margin:0">
+              <input type="checkbox" checked>
+              <span>Border around each entry</span>
+            </label>
+            <label class="check-row" style="margin:0">
+              <input type="checkbox">
+              <span>Grayscale output</span>
+            </label>
+          </div>
+        </div>
+        <div class="card-footer" style="justify-content:flex-end;">
+          <span style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.06em;flex:1">0 entries · est. 0 pages</span>
+          <button class="btn btn-outline btn-sm">Preview</button>
+          <button class="btn btn-primary btn-sm" disabled>Download PDF</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ Settings Panel ══ -->
+    <div class="page-body panel" id="panel-settings">
+
+      <div class="section-head">
+        <h2>Settings</h2>
+        <p>Default values applied to all generators. Saved to localStorage.</p>
+      </div>
+
+      <div class="grid-2" style="gap:1.2rem;">
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">QR defaults</div>
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div class="field">
+                <label>Default format</label>
+                <div class="segment">
+                  <input type="radio" name="s-fmt" id="s-fmt-svg" value="svg" checked>
+                  <label for="s-fmt-svg">SVG</label>
+                  <input type="radio" name="s-fmt" id="s-fmt-png" value="png">
+                  <label for="s-fmt-png">PNG</label>
+                  <input type="radio" name="s-fmt" id="s-fmt-both" value="both">
+                  <label for="s-fmt-both">Both</label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Default size</label>
+                <select id="s-size">
+                  <option value="256">256px</option>
+                  <option value="512" selected>512px</option>
+                  <option value="1024">1024px</option>
+                  <option value="2048">2048px</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Default error correction</label>
+                <select id="s-ec">
+                  <option value="H" selected>H — High (30%)</option>
+                  <option value="Q">Q — Medium (25%)</option>
+                  <option value="M">M — Low (15%)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">PDF defaults</div>
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div class="field">
+                <label>Paper format</label>
+                <select id="s-paper">
+                  <option value="a4" selected>A4</option>
+                  <option value="letter">US Letter</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Default columns</label>
+                <select id="s-cols">
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="3">3</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Filename prefix</label>
+                <input type="text" id="s-prefix" placeholder="wb-" value="wb-">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">WhiskyBase URL</div>
+            <div class="field">
+              <label>Base URL</label>
+              <input type="text" id="s-base-url" value="https://www.whiskybase.com/whiskies/whisky/">
+              <p class="hint">ID will be appended — e.g. …/whisky/166254</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;">Logo defaults</div>
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div class="field">
+                <label>Default logo</label>
+                <div class="logo-input-wrap" onclick="document.getElementById('s-logo-file').click()">
+                  <img id="s-logo-preview" class="logo-preview" style="display:none;">
+                  <span id="s-logo-placeholder" class="logo-placeholder">Click to select…</span>
+                  <span id="s-logo-name" class="logo-filename"></span>
+                  <span onclick="event.stopPropagation();clearSettingsLogo()" id="s-logo-clear" class="logo-clear" style="display:none;">×</span>
+                </div>
+                <input type="file" id="s-logo-file" accept="image/png,image/jpeg" style="display:none;" onchange="handleSettingsLogoFile(this)">
+                <p class="hint">Applied to all QR generations by default</p>
+              </div>
+              <div class="field">
+                <label>Logo size</label>
+                <select id="s-logo-size">
+                  <option value="15">15%</option>
+                  <option value="25" selected>25%</option>
+                  <option value="30">30%</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-body">
+            <div style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1.2rem;">Pattern & color defaults</div>
+            <div class="grid-2" style="gap:1.4rem;">
+              <div class="field">
+                <label>Module shape</label>
+                <div class="pattern-grid" id="s-pattern-module">
+                  <div class="pattern-option active" data-value="square" onclick="selectSettingsPattern('module',this)">
+                    <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="0"/></svg>
+                    <span>Square</span>
+                  </div>
+                  <div class="pattern-option" data-value="rounded" onclick="selectSettingsPattern('module',this)">
+                    <svg viewBox="0 0 40 40"><rect x="6" y="6" width="28" height="28" rx="7"/></svg>
+                    <span>Rounded</span>
+                  </div>
+                  <div class="pattern-option" data-value="dot" onclick="selectSettingsPattern('module',this)">
+                    <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14"/></svg>
+                    <span>Dot</span>
+                  </div>
+                  <div class="pattern-option" data-value="diamond" onclick="selectSettingsPattern('module',this)">
+                    <svg viewBox="0 0 40 40"><polygon points="20,4 36,20 20,36 4,20"/></svg>
+                    <span>Diamond</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Finder pattern</label>
+                <div class="pattern-grid" id="s-pattern-finder">
+                  <div class="pattern-option active" data-value="square" onclick="selectSettingsPattern('finder',this)">
+                    <svg viewBox="0 0 40 40">
+                      <rect x="4" y="4" width="32" height="32" rx="0" fill="none" stroke="currentColor" stroke-width="4"/>
+                      <rect x="12" y="12" width="16" height="16" rx="0"/>
+                    </svg>
+                    <span>Square</span>
+                  </div>
+                  <div class="pattern-option" data-value="rounded" onclick="selectSettingsPattern('finder',this)">
+                    <svg viewBox="0 0 40 40">
+                      <rect x="4" y="4" width="32" height="32" rx="8" fill="none" stroke="currentColor" stroke-width="4"/>
+                      <rect x="12" y="12" width="16" height="16" rx="4"/>
+                    </svg>
+                    <span>Rounded</span>
+                  </div>
+                  <div class="pattern-option" data-value="circle" onclick="selectSettingsPattern('finder',this)">
+                    <svg viewBox="0 0 40 40">
+                      <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="4"/>
+                      <circle cx="20" cy="20" r="8"/>
+                    </svg>
+                    <span>Circle</span>
+                  </div>
+                  <div class="pattern-option" data-value="diamond" onclick="selectSettingsPattern('finder',this)">
+                    <svg viewBox="0 0 40 40">
+                      <polygon points="20,2 38,20 20,38 2,20" fill="none" stroke="currentColor" stroke-width="4"/>
+                      <polygon points="20,12 28,20 20,28 12,20"/>
+                    </svg>
+                    <span>Diamond</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <hr class="divider" style="margin:1.2rem 0 1rem;">
+            <div class="grid-2" style="gap:1.4rem;">
+              <div class="field">
+                <label>Foreground color</label>
+                <div style="display:flex;gap:0.6rem;align-items:center;">
+                  <input type="color" id="s-color-fg" value="#000000" style="width:40px;height:36px;padding:2px;border-radius:3px;cursor:pointer;flex-shrink:0;">
+                  <input type="text" id="s-color-fg-hex" value="#000000" oninput="syncSettingsColor('fg',this.value)" placeholder="#000000">
+                </div>
+              </div>
+              <div class="field">
+                <label>Background color</label>
+                <div style="display:flex;gap:0.6rem;align-items:center;">
+                  <input type="color" id="s-color-bg" value="#ffffff" style="width:40px;height:36px;padding:2px;border-radius:3px;cursor:pointer;flex-shrink:0;">
+                  <input type="text" id="s-color-bg-hex" value="#ffffff" oninput="syncSettingsColor('bg',this.value)" placeholder="#ffffff">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="settings-saved-msg" style="display:none;font-size:0.68rem;color:#2e7d32;letter-spacing:0.06em;margin-top:1rem;text-align:right;">
+        Settings saved.
+      </div>
+
+      <div style="display:flex;gap:0.6rem;margin-top:1rem;justify-content:flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="resetSettings()">Reset to defaults</button>
+        <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save settings</button>
+      </div>
+
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /shell -->
+
+<script src="wasm_exec.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
